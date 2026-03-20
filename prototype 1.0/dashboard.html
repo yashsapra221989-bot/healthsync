@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HealthSync — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #06080f;
+      --surface: #0d1117;
+      --surface2: #161b27;
+      --surface3: #1e2535;
+      --border: #232d42;
+      --accent: #00c8ff;
+      --accent-dim: rgba(0,200,255,0.12);
+      --green: #00e5a0;
+      --green-dim: rgba(0,229,160,0.1);
+      --red: #ff4757;
+      --amber: #ffd32a;
+      --text: #e8edf5;
+      --text2: #8892a4;
+      --text3: #4a5568;
+      --hospital: #a78bfa;
+      --hospital-dim: rgba(167,139,250,0.12);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .grid-bg {
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,200,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,200,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 9999; opacity: 0.4;
+    }
+
+    /* ── Nav ── */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 40px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(6,8,15,0.85);
+      backdrop-filter: blur(20px);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-logo {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: 1.3rem; letter-spacing: -0.5px;
+    }
+    .nav-logo span { color: var(--accent); }
+    .nav-back {
+      display: flex; align-items: center; gap: 8px;
+      background: none; border: 1px solid var(--border);
+      color: var(--text2); font-family: 'DM Sans', sans-serif;
+      font-size: 0.82rem; padding: 7px 16px; border-radius: 8px;
+      cursor: pointer; transition: all 0.2s; text-decoration: none;
+    }
+    .nav-back:hover { border-color: var(--hospital); color: var(--hospital); }
+
+    /* ── Layout ── */
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: calc(100vh - 61px);
+      position: relative; z-index: 1;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 0;
+      position: sticky; top: 61px;
+      height: calc(100vh - 61px);
+      overflow-y: auto;
+    }
+    .sidebar-section { padding: 0 16px; margin-bottom: 24px; }
+    .sidebar-section-label {
+      font-family: 'DM Mono', monospace; font-size: 0.62rem;
+      letter-spacing: 2px; text-transform: uppercase;
+      color: var(--text3); padding: 0 12px; margin-bottom: 8px;
+    }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 10px;
+      cursor: pointer; font-size: 0.85rem; color: var(--text2);
+      transition: all 0.15s; margin-bottom: 2px;
+    }
+    .sidebar-item:hover { background: var(--surface2); color: var(--text); }
+    .sidebar-item.active { background: var(--hospital-dim); color: var(--hospital); }
+    .sidebar-badge {
+      margin-left: auto;
+      background: var(--hospital-dim); color: var(--hospital);
+      font-size: 0.65rem; font-family: 'DM Mono', monospace;
+      padding: 2px 7px; border-radius: 100px;
+    }
+    .sidebar-item:hover .sidebar-badge { background: rgba(167,139,250,0.2); }
+
+    /* ── Main ── */
+    .dashboard-main { padding: 36px 40px; overflow-y: auto; }
+
+    .dash-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 32px;
+    }
+    .dash-header h1 {
+      font-family: 'Syne', sans-serif; font-size: 1.7rem;
+      font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px;
+    }
+    .dash-header p { font-size: 0.82rem; color: var(--text2); }
+    .dash-time {
+      font-family: 'DM Mono', monospace; font-size: 0.78rem;
+      color: var(--text3); text-align: right;
+    }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 16px; margin-bottom: 32px;
+    }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px;
+      transition: all 0.2s;
+    }
+    .stat-card:hover { border-color: var(--hospital); transform: translateY(-2px); }
+    .stat-card-label {
+      font-family: 'DM Mono', monospace; font-size: 0.65rem;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--text3); margin-bottom: 8px;
+    }
+    .stat-card-value {
+      font-family: 'Syne', sans-serif; font-size: 2rem;
+      font-weight: 800; letter-spacing: -1px;
+    }
+    .stat-card-sub { font-size: 0.75rem; color: var(--text3); margin-top: 4px; }
+
+    /* ── Controls ── */
+    .controls-row {
+      display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1; min-width: 220px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 11px 16px;
+      color: var(--text); font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem; outline: none; transition: all 0.2s;
+    }
+    .search-input:focus { border-color: var(--hospital); box-shadow: 0 0 0 3px rgba(167,139,250,0.08); }
+    .search-input::placeholder { color: var(--text3); }
+
+    .ctrl-btn {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 11px 16px;
+      color: var(--text2); font-size: 0.82rem;
+      cursor: pointer; transition: all 0.2s;
+      font-family: 'DM Sans', sans-serif; white-space: nowrap;
+    }
+    .ctrl-btn:hover { border-color: var(--hospital); color: var(--hospital); }
+    .ctrl-btn.accent-btn { border-color: rgba(0,200,255,0.2); color: var(--accent); }
+    .ctrl-btn.accent-btn:hover { border-color: var(--accent); background: var(--accent-dim); }
+
+    /* ── Table ── */
+    .table-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+    }
+
+    .records-table { width: 100%; border-collapse: collapse; }
+
+    .records-table thead { background: var(--surface2); }
+    .records-table th {
+      padding: 12px 20px; text-align: left;
+      font-family: 'DM Mono', monospace; font-size: 0.65rem;
+      letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--text3); border-bottom: 1px solid var(--border);
+    }
+    .records-table td {
+      padding: 14px 20px; font-size: 0.85rem;
+      border-bottom: 1px solid rgba(35,45,66,0.5);
+      vertical-align: middle;
+    }
+    .records-table tr:last-child td { border-bottom: none; }
+    .records-table tbody tr:hover td { background: var(--surface2); }
+
+    .patient-cell { display: flex; align-items: center; gap: 12px; }
+    .patient-avatar {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: var(--accent-dim); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 0.75rem; flex-shrink: 0;
+    }
+
+    /* Action buttons */
+    .btn-small {
+      padding: 5px 12px; font-size: 0.75rem;
+      border-radius: 7px; cursor: pointer;
+      transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+    }
+    .btn-view {
+      background: none; border: 1px solid var(--border);
+      color: var(--text2);
+    }
+    .btn-view:hover { border-color: var(--hospital); color: var(--hospital); }
+    .btn-delete {
+      background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.2);
+      color: var(--red);
+    }
+    .btn-delete:hover { background: rgba(255,71,87,0.2); }
+    .actions-cell { display: flex; gap: 8px; }
+
+    /* Empty / loading states */
+    .state-box {
+      text-align: center; padding: 60px 20px; color: var(--text2);
+    }
+    .state-box h2 {
+      font-family: 'Syne', sans-serif; font-size: 1.2rem;
+      color: var(--hospital); margin-bottom: 8px;
+    }
+    .state-box p { font-size: 0.85rem; color: var(--text3); }
+
+    .spinner {
+      border: 2px solid var(--border); border-top-color: var(--hospital);
+      border-radius: 50%; width: 32px; height: 32px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Modal */
+    .modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(6,8,15,0.85); backdrop-filter: blur(8px);
+      z-index: 1000; align-items: center; justify-content: center; padding: 24px;
+    }
+    .modal.show { display: flex; animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal-content {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px;
+      max-width: 560px; width: 100%;
+      max-height: 90vh; overflow-y: auto;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px;
+      background: var(--surface2); border: none;
+      color: var(--text2); width: 32px; height: 32px;
+      border-radius: 8px; cursor: pointer; font-size: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .modal-close:hover { background: var(--surface3); color: var(--text); }
+    .modal-content h2 {
+      font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800;
+      margin-bottom: 20px; color: var(--hospital);
+    }
+    .detail-field { margin-bottom: 14px; }
+    .detail-field label {
+      display: block; font-family: 'DM Mono', monospace;
+      font-size: 0.65rem; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--text3); margin-bottom: 5px;
+    }
+    .detail-field value {
+      display: block; color: var(--text); font-size: 0.88rem;
+      padding: 10px 14px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .photo-preview { max-width: 100%; border-radius: 8px; margin-top: 8px; max-height: 300px; }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 32px; right: 32px;
+      border-radius: 12px; padding: 12px 20px;
+      font-size: 0.82rem; font-family: 'DM Mono', monospace;
+      z-index: 9998; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      transform: translateY(80px); opacity: 0;
+      background: var(--surface2);
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border: 1px solid var(--green); color: var(--green); }
+    .toast.error   { border: 1px solid var(--red);   color: var(--red); }
+    .toast.info    { border: 1px solid var(--accent); color: var(--accent); }
+    .toast.warning { border: 1px solid var(--amber);  color: var(--amber); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .dashboard-layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      nav { padding: 14px 20px; }
+      .dashboard-main { padding: 24px 20px; }
+    }
+  </style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">Health<span>Sync</span></div>
+  <a href="sync.html" class="nav-back">← Back to Profile</a>
+</nav>
+
+<div class="dashboard-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Main</div>
+      <div class="sidebar-item active">
+        <span>📊</span> Dashboard
+        <span class="sidebar-badge" id="sidebar-badge">0</span>
+      </div>
+      <div class="sidebar-item" onclick="document.getElementById('searchInput').focus()">
+        <span>🔍</span> Search Records
+      </div>
+      <div class="sidebar-item" onclick="loadRecords()">
+        <span>🔄</span> Refresh
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Actions</div>
+      <div class="sidebar-item" onclick="exportToCSV()"><span>📥</span> Export CSV</div>
+      <div class="sidebar-item" onclick="goToForm()"><span>➕</span> Add Record</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">System</div>
+      <div class="sidebar-item" onclick="if(confirm('Sign out?'))window.location.href='login.html'"><span>🔒</span> Sign Out</div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="dashboard-main">
+
+    <div class="dash-header">
+      <div>
+        <h1>Patient Records</h1>
+        <p>HealthSync Emergency Registry — All registered profiles</p>
+      </div>
+      <div class="dash-time" id="dash-time">—</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-card-label">Total Records</div>
+        <div class="stat-card-value" id="totalCount" style="color:var(--hospital)">0</div>
+        <div class="stat-card-sub">Registered profiles</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">Last Updated</div>
+        <div class="stat-card-value" id="lastUpdate" style="color:var(--accent);font-size:1.1rem;margin-top:6px;">—</div>
+        <div class="stat-card-sub">Most recent entry</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">With Allergies</div>
+        <div class="stat-card-value" id="allergyCount" style="color:var(--amber)">0</div>
+        <div class="stat-card-sub">Flagged patients</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-label">System Status</div>
+        <div class="stat-card-value" style="color:var(--green);font-size:1rem;margin-top:6px;">● Online</div>
+        <div class="stat-card-sub">All systems nominal</div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-row">
+      <input type="text" class="search-input" id="searchInput" placeholder="Search by name…" onkeyup="filterRecords()">
+      <button class="ctrl-btn" onclick="loadRecords()">🔄 Refresh</button>
+      <button class="ctrl-btn" onclick="exportToCSV()">📥 Export CSV</button>
+      <button class="ctrl-btn accent-btn" onclick="goToForm()">➕ Add New</button>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <div id="loading" class="state-box" style="display:none;">
+        <div class="spinner"></div>
+        <p>Loading records…</p>
+      </div>
+
+      <div id="emptyState" class="state-box" style="display:none;">
+        <h2>No Records Yet</h2>
+        <p>Fill out the medical form to add records to the database.</p>
+        <button class="ctrl-btn accent-btn" style="margin-top:16px;" onclick="goToForm()">Go to Form →</button>
+      </div>
+
+      <table class="records-table" id="recordsTable" style="display:none;">
+        <thead>
+          <tr>
+            <th>Patient</th>
+            <th>Blood Type</th>
+            <th>Allergies</th>
+            <th>Emergency Contact</th>
+            <th>Last Updated</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+    </div>
+
+  </main>
+</div>
+
+<!-- Detail Modal -->
+<div id="detailModal" class="modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2>Medical Record Details</h2>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toastEl"></div>
+
+<script>
+  let allRecords = [];
+
+  /* ── Clock ── */
+  function updateTime() {
+    const now = new Date();
+    document.getElementById('dash-time').innerHTML =
+      `${now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}<br>
+       <span style="font-size:0.65rem;">${now.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</span>`;
+  }
+  updateTime();
+  setInterval(updateTime, 60000);
+
+  /* ── Toast ── */
+  function showToast(message, type = 'info') {
+    const el = document.getElementById('toastEl');
+    el.textContent = message;
+    el.className = `toast ${type} show`;
+    setTimeout(() => el.classList.remove('show'), 3200);
+  }
+
+  /* ── Load records ── */
+  document.addEventListener('DOMContentLoaded', loadRecords);
+
+  async function loadRecords() {
+    const loading    = document.getElementById('loading');
+    const emptyState = document.getElementById('emptyState');
+    const table      = document.getElementById('recordsTable');
+
+    loading.style.display = 'block';
+    emptyState.style.display = 'none';
+    table.style.display = 'none';
+
+    try {
+      const response = await fetch('/api/all-records');
+      const data = await response.json();
+
+      if (data.success && data.records.length > 0) {
+        allRecords = data.records;
+        displayRecords(allRecords);
+
+        document.getElementById('totalCount').textContent   = allRecords.length;
+        document.getElementById('sidebar-badge').textContent = allRecords.length;
+
+        const latestDate = allRecords[allRecords.length - 1][7] || null;
+        document.getElementById('lastUpdate').textContent = latestDate
+          ? new Date(latestDate).toLocaleDateString('en-IN', {day:'numeric',month:'short'})
+          : '—';
+
+        const withAllergies = allRecords.filter(r => r[3] && r[3].trim()).length;
+        document.getElementById('allergyCount').textContent = withAllergies;
+
+        table.style.display = 'table';
+      } else {
+        emptyState.style.display = 'block';
+      }
+    } catch (error) {
+      console.error('Error loading records:', error);
+      showToast('Error loading records', 'error');
+      emptyState.style.display = 'block';
+    } finally {
+      loading.style.display = 'none';
+    }
+  }
+
+  function displayRecords(records) {
+    const tbody = document.getElementById('recordsBody');
+    tbody.innerHTML = '';
+
+    records.forEach(record => {
+      const name = record[1] || 'Unknown';
+      const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+      const date = record[7] ? new Date(record[7]).toLocaleDateString('en-IN') : '—';
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>
+          <div class="patient-cell">
+            <div class="patient-avatar">${initials}</div>
+            <div>
+              <div style="font-weight:500;">${record[1] || 'N/A'}</div>
+              <div style="font-size:0.72rem;color:var(--text3);font-family:'DM Mono',monospace;">${record[0] ? record[0].toString().slice(0,12) : '—'}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          ${record[2] ? `<span style="background:rgba(255,71,87,0.12);color:var(--red);border-radius:6px;padding:3px 9px;font-family:'DM Mono',monospace;font-size:0.72rem;">${record[2]}</span>` : '<span style="color:var(--text3)">—</span>'}
+        </td>
+        <td style="font-size:0.8rem;color:var(--text2);">${record[3] || '<span style="color:var(--text3)">None</span>'}</td>
+        <td style="font-size:0.78rem;color:var(--text2);">${record[5] || '<span style="color:var(--text3)">—</span>'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text3);">${date}</td>
+        <td>
+          <div class="actions-cell">
+            <button class="btn-small btn-view" onclick="viewDetails('${record[0]}')">View →</button>
+            <button class="btn-small btn-delete" onclick="deleteRecord('${record[0]}', '${record[1]}')">Delete</button>
+          </div>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+
+  function filterRecords() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const filtered = allRecords.filter(r => (r[1] || '').toLowerCase().includes(q));
+    displayRecords(filtered);
+  }
+
+  async function viewDetails(userId) {
+    try {
+      const response = await fetch(`/api/get-medical-data/${userId}`);
+      const data = await response.json();
+
+      if (data.success) {
+        let html = `
+          <div class="detail-field"><label>ID</label><value>${data.id}</value></div>
+          <div class="detail-field"><label>Name</label><value>${data.name || 'N/A'}</value></div>
+          <div class="detail-field"><label>Blood Type</label><value>${data.blood || 'N/A'}</value></div>
+          <div class="detail-field"><label>Allergies</label><value>${data.allergy || 'None recorded'}</value></div>
+          <div class="detail-field"><label>Medical Conditions</label><value>${data.condition || 'None recorded'}</value></div>
+          <div class="detail-field"><label>Emergency Contact</label><value>${data.contact || 'N/A'}</value></div>
+          <div class="detail-field"><label>Last Updated</label><value>${new Date(data.updated_at).toLocaleString('en-IN')}</value></div>
+        `;
+        if (data.photo) {
+          html += `<div class="detail-field"><label>Photo</label><img src="${data.photo}" alt="Photo" class="photo-preview"></div>`;
+        }
+        document.getElementById('detailContent').innerHTML = html;
+        document.getElementById('detailModal').classList.add('show');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error loading details', 'error');
+    }
+  }
+
+  function closeModal() {
+    document.getElementById('detailModal').classList.remove('show');
+  }
+
+  window.onclick = function(event) {
+    const modal = document.getElementById('detailModal');
+    if (event.target === modal) modal.classList.remove('show');
+  };
+
+  async function deleteRecord(userId, name) {
+    if (!confirm(`Delete ${name}'s record? This cannot be undone.`)) return;
+    try {
+      const response = await fetch(`/api/delete-medical-data/${userId}`, { method: 'DELETE' });
+      const data = await response.json();
+      if (data.success) {
+        showToast(`${name}'s record deleted`, 'success');
+        loadRecords();
+      } else {
+        showToast('Error deleting record', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error deleting record', 'error');
+    }
+  }
+
+  function exportToCSV() {
+    if (allRecords.length === 0) {
+      showToast('No records to export', 'warning');
+      return;
+    }
+    let csv = 'ID,Name,Blood Type,Allergies,Conditions,Contact,Created,Updated\n';
+    allRecords.forEach(r => {
+      csv += `"${r[0]}","${r[1]||''}","${r[2]||''}","${r[3]||''}","${r[4]||''}","${r[5]||''}","${r[7]||''}","${r[8]||''}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'healthsync_records.csv';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    showToast('CSV exported ✓', 'success');
+  }
+
+  function goToForm() {
+    window.location.href = 'sync.html';
+  }
+</script>
+</body>
+</html>
